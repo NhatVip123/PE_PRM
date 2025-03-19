@@ -13,7 +13,7 @@ import com.example.se1751_net_he163424_tourmgtapp.dao.TourDatabaseHelper;
 public class CreateTourActivity extends AppCompatActivity {
 
     private EditText tourCodeEditText, tourTitleEditText, priceEditText, membersEditText;
-    private Button saveButton;
+    private Button saveButton, backButton;
     private TourDatabaseHelper dbHelper;
 
     @Override
@@ -33,9 +33,13 @@ public class CreateTourActivity extends AppCompatActivity {
         priceEditText = findViewById(R.id.priceEditText);
         membersEditText = findViewById(R.id.membersEditText);
         saveButton = findViewById(R.id.saveButton);
+        backButton = findViewById(R.id.backButton);
         dbHelper = new TourDatabaseHelper(this);
 
         saveButton.setOnClickListener(v -> saveTour());
+
+        // Xử lý nút Back
+        backButton.setOnClickListener(v -> finish());
     }
 
     private void saveTour() {
