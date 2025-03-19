@@ -5,6 +5,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.se1751_net_he163424_tourmgtapp.dao.TourDatabaseHelper;
@@ -12,7 +13,7 @@ import com.example.se1751_net_he163424_tourmgtapp.dao.TourDatabaseHelper;
 public class CreateTourActivity extends AppCompatActivity {
 
     private EditText tourCodeEditText, tourTitleEditText, priceEditText, membersEditText;
-    private Button backButton, saveButton;
+    private Button saveButton;
     private TourDatabaseHelper dbHelper;
 
     @Override
@@ -20,15 +21,20 @@ public class CreateTourActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_tour);
 
+        // Thiết lập tiêu đề trên ActionBar
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setTitle("Create Tour");
+            actionBar.setDisplayHomeAsUpEnabled(true);
+        }
+
         tourCodeEditText = findViewById(R.id.tourCodeEditText);
         tourTitleEditText = findViewById(R.id.tourTitleEditText);
         priceEditText = findViewById(R.id.priceEditText);
         membersEditText = findViewById(R.id.membersEditText);
-        backButton = findViewById(R.id.backButton);
         saveButton = findViewById(R.id.saveButton);
         dbHelper = new TourDatabaseHelper(this);
 
-        backButton.setOnClickListener(v -> finish());
         saveButton.setOnClickListener(v -> saveTour());
     }
 
@@ -77,5 +83,11 @@ public class CreateTourActivity extends AppCompatActivity {
         if (code.length() != 10) return false;
         if (!code.startsWith("T")) return false;
         return code.matches("T[A-Z0-9]{9}");
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        finish();
+        return true;
     }
 }

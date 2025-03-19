@@ -1,42 +1,85 @@
 package com.example.se1751_net_he163424_tourmgtapp;
 
-import android.content.SharedPreferences;
-import android.os.Bundle;
-
-import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.view.View;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.ListView;
-import android.widget.TextView;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.se1751_net_he163424_tourmgtapp.adapter.TourAdapter;
 import com.example.se1751_net_he163424_tourmgtapp.dao.TourDatabaseHelper;
 import com.example.se1751_net_he163424_tourmgtapp.entity.Tour;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements TourAdapter.OnTourDeletedListener {
 
     private TourDatabaseHelper dbHelper;
-    private ListView tourListView;
-    private Button createTourButton;
+    private RecyclerView tourRecyclerView;
     private ArrayList<Tour> tourList;
-    private ArrayAdapter<Tour> adapter;
+    private TourAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Thiết lập tiêu đề trên ActionBar
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setTitle("Tour List");
+        }
+
         dbHelper = new TourDatabaseHelper(this);
-        tourListView = findViewById(R.id.tourListView);
-        createTourButton = findViewById(R.id.createTourButton);
+        tourRecyclerView = findViewById(R.id.tourRecyclerView);
         tourList = new ArrayList<>();
+
+        // Thiết lập RecyclerView
+        tourRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        adapter = new TourAdapter(this, tourList, dbHelper, this);
+        tourRecyclerView.setAdapter(adapter);
+
+        // Tạo FrameLayout để chứa RecyclerView và FAB
+        FrameLayout frameLayout = new FrameLayout(this);
+        frameLayout.setLayoutParams(new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+        ));
+
+        // Xóa RecyclerView khỏi parent hiện tại và thêm vào FrameLayout
+        View recyclerView = findViewById(R.id.tourRecyclerView);
+        ((ViewGroup) recyclerView.getParent()).removeView(recyclerView);
+        frameLayout.addView(recyclerView);
+
+        // Thêm Floating Action Button
+        FloatingActionButton fab = new FloatingActionButton(this);
+        fab.setId(View.generateViewId());
+        fab.setImageResource(android.R.drawable.ic_input_add);
+        fab.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, CreateTourActivity.class)));
+
+        // Định vị FAB bằng FrameLayout.LayoutParams
+        FrameLayout.LayoutParams fabParams = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+        );
+        fabParams.gravity = android.view.Gravity.END | android.view.Gravity.BOTTOM;
+        fabParams.setMargins(0, 0, 16, 16);
+        fab.setLayoutParams(fabParams);
+
+        frameLayout.addView(fab);
+
+        // Đặt FrameLayout làm nội dung của Activity
+        setContentView(frameLayout);
 
         // Kiểm tra lần đầu chạy ứng dụng
         SharedPreferences prefs = getSharedPreferences("TourAppPrefs", MODE_PRIVATE);
@@ -44,18 +87,12 @@ public class MainActivity extends AppCompatActivity {
 
         if (isFirstRun || dbHelper.isTableEmpty()) {
             dbHelper.loadFirst();
-
-            // Đánh dấu rằng ứng dụng đã chạy lần đầu
             SharedPreferences.Editor editor = prefs.edit();
             editor.putBoolean("isFirstRun", false);
             editor.apply();
         }
 
         loadTours();
-
-        createTourButton.setOnClickListener(v -> {
-            startActivity(new Intent(MainActivity.this, CreateTourActivity.class));
-        });
     }
 
     @Override
@@ -67,7 +104,6 @@ public class MainActivity extends AppCompatActivity {
     private void loadTours() {
         tourList.clear();
         Cursor cursor = dbHelper.getAllTours();
-        int index = 1;
         if (cursor.moveToFirst()) {
             do {
                 String code = cursor.getString(cursor.getColumnIndexOrThrow("Tour_Code"));
@@ -75,49 +111,18 @@ public class MainActivity extends AppCompatActivity {
                 double price = cursor.getDouble(cursor.getColumnIndexOrThrow("Price"));
                 int members = cursor.getInt(cursor.getColumnIndexOrThrow("Members"));
                 tourList.add(new Tour(code, title, price, members));
-                index++;
             } while (cursor.moveToNext());
         }
         cursor.close();
+        adapter.notifyDataSetChanged();
+    }
 
-        adapter = new ArrayAdapter<Tour>(this, R.layout.tour_item, R.id.titleTextView, tourList) {
-            @Override
-            public View getView(int position, View convertView, android.view.ViewGroup parent) {
-                View view = super.getView(position, convertView, parent);
-                Tour tour = tourList.get(position);
-
-                TextView indexTextView = view.findViewById(R.id.indexTextView);
-                TextView codeTextView = view.findViewById(R.id.codeTextView);
-                TextView titleTextView = view.findViewById(R.id.titleTextView);
-                TextView membersTextView = view.findViewById(R.id.membersTextView);
-                TextView priceTextView = view.findViewById(R.id.priceTextView);
-                Button deleteButton = view.findViewById(R.id.deleteButton);
-
-                indexTextView.setText(String.valueOf(position + 1));
-                codeTextView.setText(tour.getCode());
-                titleTextView.setText(tour.getTitle());
-                membersTextView.setText(String.valueOf(tour.getMembers()));
-                priceTextView.setText(String.format("$%.2f", tour.getPrice()));
-
-                deleteButton.setOnClickListener(v -> {
-                    new AlertDialog.Builder(MainActivity.this)
-                            .setTitle("Confirmation")
-                            .setMessage("Are you sure you want to delete?")
-                            .setPositiveButton("Yes", (dialog, which) -> {
-                                if (dbHelper.deleteTour(tour.getCode())) {
-                                    Toast.makeText(MainActivity.this, "Tour deleted", Toast.LENGTH_SHORT).show();
-                                    loadTours();
-                                } else {
-                                    Toast.makeText(MainActivity.this, "Failed to delete", Toast.LENGTH_SHORT).show();
-                                }
-                            })
-                            .setNegativeButton("No", null)
-                            .show();
-                });
-
-                return view;
-            }
-        };
-        tourListView.setAdapter(adapter);
+    @Override
+    public void onTourDeleted() {
+        if (dbHelper.isTableEmpty()) {
+            dbHelper.loadFirst();
+            loadTours();
+        }
+        Toast.makeText(this, "Tour deleted", Toast.LENGTH_SHORT).show();
     }
 }
