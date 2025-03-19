@@ -25,7 +25,7 @@ public class TourDatabaseHelper extends SQLiteOpenHelper {
         String createTable = "CREATE TABLE " + TABLE_NAME + " (" +
                 COLUMN_CODE + " TEXT PRIMARY KEY," +
                 COLUMN_TITLE + " TEXT NOT NULL," +
-                COLUMN_PRICE + " REAL NOT NULL," +  // Sử dụng REAL thay vì DECIMAL cho SQLite
+                COLUMN_PRICE + " REAL NOT NULL," +
                 COLUMN_MEMBERS + " INTEGER NOT NULL)";
         db.execSQL(createTable);
     }
